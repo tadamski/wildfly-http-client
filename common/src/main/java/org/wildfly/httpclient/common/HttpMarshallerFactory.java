@@ -42,7 +42,7 @@ public final class HttpMarshallerFactory {
      * The default HTTP Marshaller factory, creates Marshallers using a simple {@link MarshallingConfiguration}
      * with {@link MarshallingConfiguration#setVersion(int) version} {@code 2}.
      */
-    static final HttpMarshallerFactory DEFAULT_FACTORY = new HttpMarshallerFactory(null);
+    static final HttpMarshallerFactory DEFAULT_FACTORY = new HttpMarshallerFactory(null, null);
 
     // internal river marshaller factory
     private static final MarshallerFactory RIVER_MARSHALLER_FACTORY = new RiverMarshallerFactory();
@@ -52,10 +52,11 @@ public final class HttpMarshallerFactory {
     // class name transformer to be used by this factory
     private final ClassNameTransformer classNameTransformer;
 
-    HttpMarshallerFactory(ClassNameTransformer classNameTransformer) {
+    HttpMarshallerFactory(ClassNameTransformer classNameTransformer, ObjectResolver objectResolver) {
         this.classNameTransformer = classNameTransformer;
         this.defaultConfiguration = createMarshallingConfiguration();
         this.defaultConfiguration.setClassNameTransformer(classNameTransformer);
+        this.defaultConfiguration.setObjectResolver(objectResolver);
     }
 
     /**

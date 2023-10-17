@@ -74,7 +74,7 @@ final class EENamespaceInteroperability {
     // key used to attach an http unmarshaller factory to a server exchange
     private static final AttachmentKey<HttpMarshallerFactory> HTTP_UNMARSHALLER_FACTORY_KEY = AttachmentKey.create(HttpMarshallerFactory.class);
     // marshaller factory to be used when Javax<->Jakarta transformation is needed
-    private static final HttpMarshallerFactory INTEROPERABLE_MARSHALLER_FACTORY = new HttpMarshallerFactory(JAVAEE_TO_JAKARTAEE);
+    private static final HttpMarshallerFactory INTEROPERABLE_MARSHALLER_FACTORY = new HttpMarshallerFactory(JAVAEE_TO_JAKARTAEE, null);
 
     static {
         if (EE_NAMESPACE_INTEROPERABLE_MODE) {
@@ -314,20 +314,23 @@ final class EENamespaceInteroperability {
 
         @Override
         public void handleRequest(HttpServerExchange exchange) throws Exception {
+            AffinityObjectResolver affinityObjectResolver = new AffinityObjectResolver(exchange.getConnection());
+            HttpMarshallerFactory defaultFactory = new HttpMarshallerFactory(null, affinityObjectResolver);
+            HttpMarshallerFactory interoperableMarshallerFactory = new HttpMarshallerFactory(JAVAEE_TO_JAKARTAEE, affinityObjectResolver);
             if (LATEST_VERSION.equals(exchange.getRequestHeaders().getFirst(PROTOCOL_VERSION))) {
                 // respond that this end also supports version two
                 exchange.getResponseHeaders().add(PROTOCOL_VERSION, LATEST_VERSION);
                 // transformation is required for unmarshalling because client is on EE namespace interoperable mode
-                exchange.putAttachment(HTTP_UNMARSHALLER_FACTORY_KEY, INTEROPERABLE_MARSHALLER_FACTORY);
+                exchange.putAttachment(HTTP_UNMARSHALLER_FACTORY_KEY, interoperableMarshallerFactory);
                 // no transformation required for marshalling, server is sending response in Jakarta
-                exchange.putAttachment(HTTP_MARSHALLER_FACTORY_KEY, DEFAULT_FACTORY);
+                exchange.putAttachment(HTTP_MARSHALLER_FACTORY_KEY, defaultFactory);
             } else {
                 // transformation is required for unmarshalling request and marshalling response,
                 // because server is interoperable mode and the lack of a header indicates this is
                 // either a Javax EE client or a Jakarta EE client that is not interoperable
                 // the latter case will lead to an error when unmarshalling at client side)
-                exchange.putAttachment(HTTP_MARSHALLER_FACTORY_KEY, INTEROPERABLE_MARSHALLER_FACTORY);
-                exchange.putAttachment(HTTP_UNMARSHALLER_FACTORY_KEY, INTEROPERABLE_MARSHALLER_FACTORY);
+                exchange.putAttachment(HTTP_MARSHALLER_FACTORY_KEY, interoperableMarshallerFactory);
+                exchange.putAttachment(HTTP_UNMARSHALLER_FACTORY_KEY, interoperableMarshallerFactory);
             }
             next.handleRequest(exchange);
         }
